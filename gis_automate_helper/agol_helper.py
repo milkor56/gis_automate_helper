@@ -1,8 +1,10 @@
 import urllib, time, os, zipfile, urllib2, shutil, json
 
-# from gis_automate_helper import log
 from arcrest import agol
 from arcrest.security import AGOLTokenSecurityHandler
+from arcrest.ags.layer import FeatureLayer
+from gis_etl import read_excel
+from gis_etl import read_csv
 
 
 def pp(obj):
@@ -59,3 +61,32 @@ def get_token(username, password):
         raise Exception("Trouble getting a security token; are your credentials correct?")
 
     return token
+
+
+def bulk_upload_attachments_from_table(feature_service_url, username, password, xls_field_match_fld,
+                                       agol_field_match_fld, xls_file_name_fld, table_file, *worksheet_name,
+                                       *attach_folder):
+    token = get_token(username=username, password=password)
+
+    fs = FeatureLayer(feature_service_url, token)
+    if "xls" in table_file:
+        rows = read_excel(excel_file=table_file, excel_worksheet_name=worksheet_name)
+    elif "csv" in table_file:
+        rows = read_csv(csv_file=table_file)
+
+    for row in rows:
+        if attach_folder:
+            filename = os.path.join(attach_folder, row[xls_file_name_fld])
+        else:
+            filename = row[xls_field_match_fld]
+
+        feature = fs.query(where=agol_field_match_fld + "='" + str(row[xls_field_match_fld]) + "'", returnIDsOnly=True)
+
+        if not feature['objectIds']:
+            print("not on agol " + str(row[xls_field_match_fld]))
+        else:
+            attached = fs.addAttachment(feature['objectIds'][0], filename)
+            if attached:
+                print("attached " + str(feature['objectIds'][0]))
+            else:
+                print("failed to attach " + str(row[xls_field_match_fld]))

@@ -1,4 +1,40 @@
-import openpyxl, os, arcpy, codecs
+import openpyxl, os, arcpy, codecs, csv
+
+
+def read_excel(excel_file, excel_worksheet_name):
+    wb = openpyxl.load_workbook(excel_file, data_only=True)
+    ws = wb.get_sheet_by_name(excel_worksheet_name)
+
+    xls_keys = []
+    i = 1
+    while i < ws.max_column + 1:
+        xls_keys.append(ws.cell(row=1, column=i).value)
+        i += 1
+
+    xls_dict = []
+    j = 2
+    while j < ws.max_row + 1:
+        i = 1
+        d = None
+        while i < ws.max_column + 1:
+            cell_value_class = ws.cell(row=1, column=i).value
+            cell_value_id = ws.cell(row=j, column=i).value
+            if d is None:
+                d = {cell_value_class: cell_value_id}
+            else:
+                d[cell_value_class] = cell_value_id
+            i += 1
+        xls_dict.append(d)
+        j += 1
+
+    return xls_dict
+
+
+def read_csv(csv_file):
+    open_csv = file(csv_file)
+    arry = csv.DictReader(open_csv)
+
+    return arry
 
 
 def create_excel(outfolder, workbookname):
